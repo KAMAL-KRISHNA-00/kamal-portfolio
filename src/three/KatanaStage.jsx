@@ -3,8 +3,9 @@ import { useReducedMotion } from 'framer-motion';
 import * as THREE from 'three';
 import { DIM, TIP_X, buildSaya, buildSword, makeEnvironment, makeMaterials } from './katanaModel.js';
 import { katanaStore, INTRO } from './store.js';
+import { buildBarrier } from './barrier.js';
 import { clamp, lerp, easeInOutCubic, easeOut } from '../lib/useMedia.js';
-import { swish } from '../lib/sound.js';
+import { swish, shatter } from '../lib/sound.js';
 
 /*
   THE SHARED ANIMATION CONTROLLER — one WebGL stage for the whole page.
@@ -172,6 +173,11 @@ export default function KatanaStage() {
     points.renderOrder = 6;
     scene.add(points);
 
+    /* ---------- the barrier each cut breaks ---------- */
+    const barrier = buildBarrier();
+    const bU = barrier.material.uniforms;
+    scene.add(barrier);
+
     /* ---------- geometry of the page ---------- */
     let vw = 1;
     let vh = 1;
@@ -313,6 +319,7 @@ export default function KatanaStage() {
       const railOK = vw >= 1100 && !reduce;
       sword.visible = false;
       saya.visible = false;
+      barrier.visible = false;
       let ribbonDrawn = false;
       let sparkK = -1;
       let moteO = 0;
@@ -496,6 +503,25 @@ export default function KatanaStage() {
             const ph = t >= 0.3 && t <= 0.7 ? 1 : 0;
             if (ph && lastPhase[active.top] !== 1) swish(mobile ? 0.6 : 1);
             lastPhase[active.top] = ph;
+
+            // the barrier along this seam: appears, cracks from the impact, shatters
+            apply(probe, free(at(0.5)));
+            probe.updateMatrix();
+            impact.copy(EDGE_TIP).applyMatrix4(probe.matrix);
+            const bandH = (mobile ? 70 : 110) * S;
+            bU.uSize.value.set(vw * 1.06, bandH);
+            bU.uSeam.value = -(seam - vh / 2);
+            bU.uScale.value = mobile ? 0.7 : S;
+            bU.uImpact.value = clamp((impact.x + (vw * 1.06) / 2) / (vw * 1.06), 0.05, 0.95);
+            bU.uFlip.value = c.p1[0] < c.p0[0] ? -1 : 1;
+            bU.uOpacity.value = smooth(t, 0.04, 0.26);
+            bU.uCrack.value = smooth(t, 0.4, 0.56);
+            bU.uProg.value = clamp((t - 0.5) / 0.5);
+            barrier.visible = bU.uOpacity.value > 0.001;
+            const br = t >= 0.5 ? 1 : 0;
+            const bk = 'b' + active.top;
+            if (br && lastPhase[bk] !== 1) shatter(mobile ? 0.6 : 1);
+            lastPhase[bk] = br;
           }
         }
       }
@@ -507,7 +533,7 @@ export default function KatanaStage() {
       points.visible = sparkK > 0 || moteO > 0;
       if (points.visible) drawParticles(sparkK, moteO, time);
 
-      const empty = !sword.visible && !saya.visible && !ribbon.visible && !points.visible;
+      const empty = !sword.visible && !saya.visible && !ribbon.visible && !points.visible && !barrier.visible;
       if (empty && wasEmpty) return; // nothing on stage — skip the draw
       wasEmpty = empty;
       renderer.render(scene, camera);

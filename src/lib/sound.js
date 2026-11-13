@@ -81,3 +81,38 @@ export function unsheath() {
     o.stop(t + 1.7);
   });
 }
+
+// glass/obsidian breaking: a bright crack, a noisy burst, then scattered high tinkles
+let lastShatter = 0;
+export function shatter(strength = 1) {
+  if (!enabled || !ctx) return;
+  const now = performance.now();
+  if (now - lastShatter < 300) return;
+  lastShatter = now;
+  const t = ctx.currentTime;
+  const src = ctx.createBufferSource();
+  src.buffer = getNoise();
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 1800;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.28 * strength, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+  src.connect(hp).connect(g).connect(ctx.destination);
+  src.start(t);
+  src.stop(t + 0.5);
+  for (let i = 0; i < 9; i++) {
+    const at = t + 0.02 + Math.random() * 0.5;
+    const o = ctx.createOscillator();
+    o.type = 'triangle';
+    o.frequency.value = 2600 + Math.random() * 4200;
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0.0001, at);
+    og.gain.exponentialRampToValueAtTime((0.05 * strength) / (1 + i * 0.3), at + 0.004);
+    og.gain.exponentialRampToValueAtTime(0.0001, at + 0.12 + Math.random() * 0.15);
+    o.connect(og).connect(ctx.destination);
+    o.start(at);
+    o.stop(at + 0.3);
+  }
+}
