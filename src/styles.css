@@ -671,8 +671,10 @@ h1, h2, h3, p { margin: 0; }
 .ef--l, .ef--r { top: 0; bottom: 0; width: 1px; }
 .ef--l { left: 0; } .ef--r { right: 0; }
 .edu-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(32px, 6vw, 96px); align-items: center; }
-.edu-title { display: flex; flex-wrap: wrap; gap: 0 0.25em; font-size: clamp(40px, 5.6vw, 80px); }
-.edu-word { display: inline-flex; overflow: hidden; white-space: nowrap; }
+.edu-title { display: flex; flex-wrap: wrap; gap: 0 0.25em; font-size: clamp(36px, 3.7vw, 54px); }
+@media (max-width: 900px) { .edu-title { font-size: clamp(30px, 8.5vw, 72px); } }
+/* mask the rising letters vertically only, so a word can never be cropped sideways */
+.edu-word { display: inline-flex; white-space: nowrap; clip-path: inset(-0.05em -50% 0 -50%); }
 .edu-word span { display: inline-block; }
 .torii { width: 100%; max-width: 360px; margin-top: 24px; overflow: visible; }
 .torii path { fill: none; stroke: var(--ash); stroke-width: 3; stroke-linecap: square; }
